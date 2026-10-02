@@ -16,7 +16,7 @@ It must work offline on AnkiMobile (iOS), AnkiDroid, desktop and AnkiWeb, and sh
   - Rank and reading: `JPDB_v2.2_Frequency_Kana_2024-10-13.zip` (Kuuuube/yomitan-dictionaries). Use the best rank across the term's readings, and the reading that has it.
   - Glosses: JMdict through kiku's existing `preprocess/parse-jmdict.ts`, keeping glosses and part-of-speech tags (noun, godan verb, な-adjective and so on). Replace the manual `JMdict_e` download with an automatic fetch.
 - **Row selection:** 5 per kanji, ordered by jpdb rank. Leave out the card's own expression and words with no JMdict match, filling the next slot from the remaining candidates. Deck Words count toward the 5.
-- **Row display:** word, reading, one-line gloss (first sense), then a muted jpdb rank (`#1,234`) at the end. Deck Words are visibly highlighted.
+- **Row display:** word, reading, one-line gloss (first sense), then a muted jpdb rank (`1,234`, no prefix, matching the card's FreqSort number) at the end. Deck Words are visibly highlighted.
 - **Tap:**
   - Deck Word: open the user's own note as a nested card (the existing `"nested"` page).
   - Any other word: expand the row in place to show all its JMdict senses, numbered, with part-of-speech tags.

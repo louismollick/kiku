@@ -185,7 +185,7 @@ export function $KanjiInfoExtra(props: { inKanjiPage?: boolean }) {
                       <span class="shrink-0 text-base-content-soft">{reading}</span>
                       <span class="truncate min-w-0">{senses[0]?.[1][0]}</span>
                       <span class="ms-auto shrink-0 text-base-content-soft">
-                        #{rank.toLocaleString()}
+                        {rank.toLocaleString()}
                       </span>
                     </button>
                     <Show when={expanded() === word}>
