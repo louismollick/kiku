@@ -9,7 +9,7 @@ export const plugin = {
   KanjiInfoExtra: (props) => {
     const { onMount } = props.ctx;
     const { checkboxRef, sections } = props;
-    const { VisuallySimilar, ComposedOf, UsedIn, Meanings, Related } = sections;
+    const { CommonWords, VisuallySimilar, ComposedOf, UsedIn, Meanings, Related } = sections;
 
     /** @param {HTMLInputElement} checkbox */
     function openSection(checkbox) {
@@ -28,6 +28,7 @@ export const plugin = {
 
     return [
       /** You can customize the order here */
+      CommonWords(),
       VisuallySimilar(),
       ComposedOf(),
       UsedIn(),

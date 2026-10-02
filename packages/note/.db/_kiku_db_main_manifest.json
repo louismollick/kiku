@@ -9,6 +9,11 @@
       "start": 452608,
       "end": 2742909,
       "size": 2290302
+    },
+    "kiku_db_common_words.json.gz": {
+      "start": 2743808,
+      "end": 3673805,
+      "size": 929998
     }
   }
 }

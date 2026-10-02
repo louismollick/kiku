@@ -2,20 +2,36 @@ import {
   type Resource,
   createEffect,
   createMemo,
+  createResource,
+  createSignal,
   createUniqueId,
   ErrorBoundary,
   For,
   Show,
 } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, unwrap } from "solid-js/store";
 import { useNavigationTransition } from "#/src/hooks/transition";
 import { capitalizeSentence } from "#/src/lib/text";
-import type { AnkiNote } from "#/src/lib/types";
+import { ankiFieldsSkeleton, type AnkiNote, type CommonWord } from "#/src/lib/types";
 import { useCardContext } from "#/src/contexts/CardContext";
+import { useAnkiFieldContext } from "#/src/contexts/AnkiFieldsContext";
+import { useConfigContext } from "#/src/contexts/ConfigContext";
 import { useCtxContext } from "#/src/contexts/CtxContext";
 import { useGeneralContext } from "#/src/contexts/GeneralContext";
 import { KanjiContextProvider, useKanjiContext } from "#/src/lazy/contexts/KanjiContext";
 import { type ContextLabel, useKanjiPageContext } from "#/src/lazy/contexts/KanjiPageContext";
+
+function describePartOfSpeech(pos: string) {
+  if (pos === "n") return "noun";
+  if (pos.startsWith("v5")) return "godan verb";
+  if (pos === "v1") return "ichidan verb";
+  if (pos === "vs" || pos === "vs-s") return "suru verb";
+  if (pos === "adj-na") return "な-adjective";
+  if (pos === "adj-i") return "い-adjective";
+  if (pos === "vt") return "transitive";
+  if (pos === "vi") return "intransitive";
+  return pos;
+}
 
 export function $KanjiInfo() {
   const { $$kanjiInfo: $$info } = useKanjiContext();
@@ -83,6 +99,118 @@ export function $KanjiInfoExtra(props: { inKanjiPage?: boolean }) {
   const ctx = useCtxContext();
 
   const KanjiKeywordComponent = props.inKanjiPage ? KanjiKeywordKanjiPage : KanjiKeywordTooltip;
+
+  function $CommonWords() {
+    const { workerApi } = useGeneralContext();
+    const { initialAnkiFields } = useAnkiFieldContext();
+    const { $config } = useConfigContext();
+    const { $setCard } = useCardContext();
+    const { navigate } = useNavigationTransition();
+    const [open, setOpen] = createSignal(true);
+    const [expanded, setExpanded] = createSignal<string>();
+    const [words] = createResource(
+      () => (props.inKanjiPage ? undefined : $kanjiState.kanji),
+      async (kanji) => {
+        const api = await workerApi.promise;
+        return api.lookupCommonWords(kanji);
+      },
+    );
+    const [query] = createResource(
+      () => (props.inKanjiPage ? undefined : $kanjiState.kanji),
+      async (kanji) => {
+        const api = await workerApi.promise;
+        return api
+          .queryShared({ ankiFields: unwrap(initialAnkiFields), kanjiList: [kanji] })
+          .catch(() => undefined);
+      },
+    );
+    const deckNotes = createMemo(() => {
+      const result = query();
+      const notes = result?.kanjiResult[$kanjiState.kanji] ?? [];
+      const newCards = new Set(result?.newNotes.flatMap((note) => note.cards) ?? []);
+      return new Map(
+        notes
+          .filter((note) =>
+            $config.relatedExpressionExcludeNewCards ? !newCards.has(note.cards[0]) : true,
+          )
+          .map((note) => [note.fields.Expression.value, note]),
+      );
+    });
+    const visibleWords = createMemo(() =>
+      (words() ?? []).filter(([word]) => word !== initialAnkiFields.Expression).slice(0, 5),
+    );
+
+    const openDeckWord = (note: AnkiNote) => {
+      $setCard("nestedAnkiFields", {
+        ...ankiFieldsSkeleton,
+        ...Object.fromEntries(
+          Object.entries(note.fields).map(([key, value]) => [key, value.value]),
+        ),
+        CardID: note.cards[0]?.toString() ?? "",
+        Tags: note.tags.join(" "),
+      });
+      $setCard("nestedNoteId", note.noteId);
+      navigate("nested", "forward", () => navigate("main", "back"));
+    };
+
+    return (
+      <Show when={!props.inKanjiPage && visibleWords().length}>
+        <div class="collapse collapse-arrow rounded-none animate-fade-in">
+          <input
+            type="checkbox"
+            checked={open()}
+            on:change={(e) => setOpen(e.currentTarget.checked)}
+          />
+          <div class="collapse-title p-0 mb-1 after:text-base-content-calm text-start">
+            <div class="font-bold text-base-content-calm">Common Words</div>
+          </div>
+          <div class="collapse-content p-0 flex flex-col gap-1">
+            <For each={visibleWords()}>
+              {(entry: CommonWord) => {
+                const [word, reading, rank, senses] = entry;
+                const note = createMemo(() => deckNotes().get(word));
+                return (
+                  <div>
+                    <button
+                      class="w-full text-start flex items-baseline gap-1 hover:text-base-content"
+                      classList={{ "text-base-content-primary font-semibold": !!note() }}
+                      on:click={() => {
+                        const deckWord = note();
+                        if (deckWord) openDeckWord(deckWord);
+                        else setExpanded(expanded() === word ? undefined : word);
+                      }}
+                      on:touchend={(e) => e.stopPropagation()}
+                    >
+                      <span class="shrink-0">{word}</span>
+                      <span class="shrink-0 text-base-content-soft">{reading}</span>
+                      <span class="truncate min-w-0">{senses[0]?.[1][0]}</span>
+                      <span class="ms-auto shrink-0 text-base-content-soft">
+                        {rank.toLocaleString()}
+                      </span>
+                    </button>
+                    <Show when={expanded() === word}>
+                      <ol class="list-decimal ps-5 text-base-content-calm">
+                        <For each={senses}>
+                          {([pos, glosses]) => (
+                            <li>
+                              <span class="text-base-content-soft">
+                                {[...new Set(pos.map(describePartOfSpeech))].join(", ")}
+                              </span>{" "}
+                              {glosses.join("; ")}
+                            </li>
+                          )}
+                        </For>
+                      </ol>
+                    </Show>
+                  </div>
+                );
+              }}
+            </For>
+          </div>
+        </div>
+      </Show>
+    );
+  }
 
   const [$checkboxRef, $setCheckboxRef] = createStore<{
     visuallySimilar: undefined | HTMLInputElement;
@@ -332,6 +460,7 @@ export function $KanjiInfoExtra(props: { inKanjiPage?: boolean }) {
 
     return (
       <>
+        <$CommonWords />
         <$VisuallySimilar />
         <$ComposedOf />
         <$UsedIn />
@@ -342,6 +471,7 @@ export function $KanjiInfoExtra(props: { inKanjiPage?: boolean }) {
   }
 
   const sections = {
+    CommonWords: $CommonWords,
     VisuallySimilar: $VisuallySimilar,
     ComposedOf: $ComposedOf,
     UsedIn: $UsedIn,

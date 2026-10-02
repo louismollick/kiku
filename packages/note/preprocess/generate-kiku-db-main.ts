@@ -1,5 +1,7 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
+import { gunzipSync, gzipSync } from "node:zlib";
+import extract from "extract-zip";
 import * as tar from "tar";
 import { paths } from "#/tools/paths.ts";
 import { gzipFile } from "#/tools/util.ts";
@@ -7,6 +9,7 @@ import { jmdictParser, type JmdictTerm } from "./parse-jmdict.ts";
 import { kanjiVgParser } from "./parse-kanji-vg.ts";
 import { jpdbScraper } from "./scrap-jpdb.ts";
 import { wkScraper } from "./scrap-wk.ts";
+import { selectCommonWords, type JpdbFrequencyRow, type JpdbKanjiRow } from "./common-words.ts";
 
 type KikuKanji = {
   composedOf: string[];
@@ -69,6 +72,56 @@ function toCompact(entry: KikuKanji): KikuKanjiCompact {
 }
 
 class Script {
+  async writeCommonWords() {
+    const download = async (url: string, destination: string) => {
+      try {
+        await stat(destination);
+        return;
+      } catch {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Download failed: ${url} (${response.status})`);
+        await writeFile(destination, Buffer.from(await response.arrayBuffer()));
+      }
+    };
+
+    await mkdir(paths["@/.jpdb/"], { recursive: true });
+    await mkdir(paths["@/.jmdict/"], { recursive: true });
+    await mkdir(paths["@/.db/"], { recursive: true });
+    await download(
+      "https://github.com/MarvNC/yomichan-dictionaries/raw/master/dl/%5BKanji%5D%20JPDB%20Kanji.zip",
+      paths["@/.jpdb/jpdb-kanji.zip"],
+    );
+    await download(
+      "https://github.com/Kuuuube/yomitan-dictionaries/raw/main/dictionaries/JPDB_v2.2_Frequency_Kana_2024-10-13.zip",
+      paths["@/.jpdb/jpdb-frequency-kana.zip"],
+    );
+    await download("http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz", paths["@/.jmdict/JMdict_e.gz"]);
+
+    if (!(await stat(paths["@/.jmdict/JMdict_e"]).catch(() => undefined))) {
+      await writeFile(
+        paths["@/.jmdict/JMdict_e"],
+        gunzipSync(await readFile(paths["@/.jmdict/JMdict_e.gz"])),
+      );
+    }
+    await extract(paths["@/.jpdb/jpdb-kanji.zip"], { dir: paths["@/.jpdb/"] });
+    const kanjiRows = JSON.parse(
+      await readFile(`${paths["@/.jpdb/"]}/kanji_bank_1.json`, "utf8"),
+    ) as JpdbKanjiRow[];
+    await extract(paths["@/.jpdb/jpdb-frequency-kana.zip"], { dir: paths["@/.jpdb/"] });
+    const frequencyRows = JSON.parse(
+      await readFile(`${paths["@/.jpdb/"]}/term_meta_bank_1.json`, "utf8"),
+    ) as JpdbFrequencyRow[];
+
+    await jmdictParser.writeTerm();
+    await jmdictParser.writeTermMap();
+    const terms = JSON.parse(await readFile(paths["@/.jmdict/term.json"], "utf8")) as JmdictTerm[];
+    const commonWords = selectCommonWords(kanjiRows, frequencyRows, terms);
+    await writeFile(
+      paths["@/.db/kiku_db_common_words.json.gz"],
+      gzipSync(JSON.stringify(commonWords), { level: 9 }),
+    );
+  }
+
   async compareKanjiVgAndJpdb() {
     const kanjiVgJson = await kanjiVgParser.readKanjiVgJson();
     const jpdbJson = await jpdbScraper.readKanjiJson();
@@ -218,9 +271,24 @@ class Script {
   }
 
   async generateDbMainTar() {
+    const compactFiles = ["kiku_db_kanji_compact.json.gz", "kiku_db_terms_compact.json.gz"];
+    const missingFiles = (
+      await Promise.all(
+        compactFiles.map(async (file) =>
+          (await stat(`${paths["@/.db/"]}/${file}`).catch(() => undefined)) ? undefined : file,
+        ),
+      )
+    ).filter((file): file is string => file !== undefined);
+    if (missingFiles.length) {
+      await tar.extract(
+        { file: paths["@/.db/_kiku_db_main.tar"], cwd: paths["@/.db/"] },
+        missingFiles,
+      );
+    }
     const filesToInclude = [
       paths["@/.db/kiku_db_kanji_compact.json.gz"],
       paths["@/.db/kiku_db_terms_compact.json.gz"],
+      paths["@/.db/kiku_db_common_words.json.gz"],
     ].map((file) => basename(file));
 
     await tar.create(
@@ -277,5 +345,6 @@ export const kikuDbMainScript = new Script();
 // await kikuDbMainScript.gzipKikuDbKanjiCompactJson();
 // await kikuDbMainScript.writeKikuDbTerms();
 // await kikuDbMainScript.gzipKikuDbTermsCompactJson();
-// await kikuDbMainScript.generateDbMainTar();
+await kikuDbMainScript.writeCommonWords();
+await kikuDbMainScript.generateDbMainTar();
 await kikuDbMainScript.writeDbMainManifest();

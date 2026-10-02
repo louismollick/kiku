@@ -62,6 +62,7 @@ export const paths = {
   "@/.db/kiku_db_kanji_compact.json.gz":       p(".db/kiku_db_kanji_compact.json.gz"),
   "@/.db/kiku_db_terms_compact.json":          p(".db/kiku_db_terms_compact.json"),
   "@/.db/kiku_db_terms_compact.json.gz":       p(".db/kiku_db_terms_compact.json.gz"),
+  "@/.db/kiku_db_common_words.json.gz":        p(".db/kiku_db_common_words.json.gz"),
   "@/.db/_kiku_db_main.tar":                   p(".db/_kiku_db_main.tar"),
   "@/.db/_kiku_db_main_manifest.json":         p(".db/_kiku_db_main_manifest.json"),
 
@@ -70,10 +71,13 @@ export const paths = {
 
   "@/.jmdict/":                                p(".jmdict/"),
   "@/.jmdict/JMdict_e":                        p(".jmdict/JMdict_e"),
+  "@/.jmdict/JMdict_e.gz":                     p(".jmdict/JMdict_e.gz"),
   "@/.jmdict/term.json":                       p(".jmdict/term.json"),
   "@/.jmdict/termMap.json":                    p(".jmdict/termMap.json"),
 
   "@/.jpdb/":                                  p(".jpdb/"),
+  "@/.jpdb/jpdb-kanji.zip":                     p(".jpdb/jpdb-kanji.zip"),
+  "@/.jpdb/jpdb-frequency-kana.zip":           p(".jpdb/jpdb-frequency-kana.zip"),
   "@/.jpdb/kanji-by-frequency/":               p(".jpdb/kanji-by-frequency/"),
   "@/.jpdb/kanji-by-frequency/kyoiku.html":    p(".jpdb/kanji-by-frequency/kyoiku.html"),
   "@/.jpdb/kanji-by-frequency/joyo.html":      p(".jpdb/kanji-by-frequency/joyo.html"),

@@ -5,6 +5,7 @@ import { parseRelatedExpression } from "#/src/lib/parse-related-expression";
 import type {
   AnkiFields,
   AnkiNote,
+  CommonWord,
   KanjiInfo,
   KanjiInfoCompact,
   KikuDbMainManifest,
@@ -330,6 +331,21 @@ export class WorkerThreadApi {
       result = dbKanji[kanji];
     }
     return result;
+  }
+
+  lookupCommonWordsPromise: Promise<Record<string, CommonWord[]>> | undefined;
+  async lookupCommonWords(kanji: string): Promise<CommonWord[]> {
+    this.lookupCommonWordsPromise ??= (async () => {
+      const manifest = await this.dbMainManifest();
+      const file = manifest.files[this.constants.tar["kiku_db_common_words.json.gz"]];
+      const buf = await this.main.fetchArrayBuffer(
+        `${this.assetsPath}/${this.constants.assets["_kiku_db_main.tar"]}`,
+        { headers: { Range: `bytes=${file.start}-${file.end}` } },
+        { range: { start: file.start, end: file.end, size: file.size } },
+      );
+      return JSON.parse(await gunzipArrayBuffer(buf).text()) as Record<string, CommonWord[]>;
+    })();
+    return (await this.lookupCommonWordsPromise)[kanji] ?? [];
   }
 
   lookupTermPromise: PromiseWithResolvers<Record<string, TermInfo>> | undefined;

@@ -196,6 +196,7 @@ export type KikuPlugin = {
      * You can return these within your `KanjiInfoExtra` plugin hook.
      */
     sections: {
+      CommonWords: () => JSX.Element;
       VisuallySimilar: () => JSX.Element;
       ComposedOf: () => JSX.Element;
       UsedIn: () => JSX.Element;
