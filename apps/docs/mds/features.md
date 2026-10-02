@@ -15,6 +15,12 @@ This feature requires [AnkiConnect](https://ankiweb.net/shared/info/2055492159) 
   <source src="/media/feature-kanji-web.webm" type="video/mp4" />
 </video>
 
+### Kanji Tooltip
+
+Tap a kanji on the back of a card to see its readings and sections. **Common Words** shows five frequent jpdb words containing that kanji, with readings, JMdict glosses, and ranks. Words already in your collection are highlighted as **Deck Words**; tap one to open its card. Tap another word to see its numbered JMdict senses. The card's own expression is left out.
+
+Common Words works offline on desktop, AnkiMobile, AnkiDroid, and AnkiWeb. The existing new-card exclusion setting controls which words count as Deck Words. Refresh and sync the notes cache after updating the Kiku Note Manager to apply that setting offline.
+
 ### Group Multiple Picture/Sentence/SentenceAudio Together
 
 You can add multiple pictures, sentences, and sentence audios to a single note, and Kiku will group them together.

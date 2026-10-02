@@ -44,9 +44,9 @@ Please [open an issue here](https://github.com/youyoumu/kiku/issues).
 ## Credit
 
 - [Lapis](https://github.com/donkuri/lapis), [JPMN](https://github.com/Aquafina-water-bottle/jp-mining-note), and [Senren](https://github.com/BrenoAqua/Senren) for inspiration.
-- Dictionary data based on [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html).
+- Dictionary data based on [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html), copyright the Electronic Dictionary Research and Development Group, licensed under [CC BY-SA 4.0](https://www.edrdg.org/edrdg/licence.html). Common Words uses its English glosses and part-of-speech data.
 - Kanji decomposition data derived from [KanjiVG](https://kanjivg.tagaini.net/).
-- Additional metadata and heuristics were derived from publicly accessible information on WaniKani and JPDB.
+- Additional metadata and heuristics were derived from publicly accessible information on WaniKani and [jpdb](https://jpdb.io/). Common Words uses the [JPDB Kanji list](https://github.com/MarvNC/yomichan-dictionaries) and [JPDB v2.2 Frequency Kana](https://github.com/Kuuuube/yomitan-dictionaries).
 - [WaniKani Userscript](https://github.com/mwil/wanikani-userscripts) for the database used in earlier versions of the project.
 
 ## Support Me
